@@ -1,0 +1,3 @@
+[submodule "src/lodepng"]
+	path = src/lodepng
+	url = https://github.com/w3ntao/lodepng.git

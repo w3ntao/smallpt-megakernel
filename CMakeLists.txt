@@ -25,6 +25,7 @@ set(LIBRARIES ${LIBRARIES} ${PNG_LIBRARIES})
 
 add_executable(${PROJ_NAME}
         src/main.cu
+        src/lodepng/lodepng.cpp
 )
 
 target_include_directories(
