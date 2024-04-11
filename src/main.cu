@@ -1,4 +1,6 @@
 #include <iostream>
+#include <chrono>
+#include <iomanip>
 #include <curand_kernel.h>
 
 #include "macro.h"
@@ -265,18 +267,20 @@ Vec3 trace(const Ray &camera_ray, const Sphere *spheres, const int num_spheres, 
 __global__
 void render(Vec3 *frame_buffer, const int width, const int height, const int num_samples, const Sphere *spheres,
             const int num_spheres) {
-    const int worker_idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (worker_idx >= width * height) {
+    const int x = blockIdx.x * blockDim.x + threadIdx.x;
+    const int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (x >= width || y >= height) {
         return;
     }
-    const int y = height - worker_idx / width;
-    const int x = worker_idx % width;
+
+    int flat_idx = (height - 1 - y) * width + x;
 
     Ray cam(Vec3(50, 52, 295.6), Vec3(0, -0.042612, -1).norm()); // cam pos, dir
     Vec3 cx = Vec3(width * 0.5135 / height, 0, 0);
     Vec3 cy = cx.cross(cam.d).norm() * 0.5135;
 
-    Sampler sampler(worker_idx);
+    Sampler sampler(flat_idx);
 
     auto pixel_val = Vec3(0.0, 0.0, 0.0);
     for (int s = 0; s < num_samples; s++) {
@@ -293,7 +297,7 @@ void render(Vec3 *frame_buffer, const int width, const int height, const int num
 
     pixel_val = pixel_val * (1.0 / double(num_samples));
 
-    frame_buffer[worker_idx] = Vec3(clamp(pixel_val.x, 0, 1), clamp(pixel_val.y, 0, 1), clamp(pixel_val.z, 0, 1));
+    frame_buffer[flat_idx] = Vec3(clamp(pixel_val.x, 0, 1), clamp(pixel_val.y, 0, 1), clamp(pixel_val.z, 0, 1));
 }
 
 int main() {
@@ -331,12 +335,22 @@ int main() {
     spheres[8].init(600, Vec3(50, 681.6 - .27, 81.6), Vec3(12, 12, 12), Vec3(0, 0, 0),
                     ReflectionType::diffuse); // Lite
 
-    const int thread_size = 64;
-    dim3 threads(thread_size);
-    dim3 blocks(width * height / thread_size + 1);
+    auto start = std::chrono::system_clock::now();
+
+    const int thread_width = 8;
+    const int thread_height = 8;
+
+    dim3 threads(thread_width, thread_height);
+    dim3 blocks(width / thread_width + 1, height / thread_height + 1);
+
     render<<<blocks, threads>>>(frame_buffer, width, height, num_samples, spheres, num_spheres);
     checkCudaErrors(cudaDeviceSynchronize());
     checkCudaErrors(cudaGetLastError());
+
+    const std::chrono::duration<double> duration{std::chrono::system_clock::now() - start};
+    std::cout << "rendering (" << num_samples << " spp) took " << std::fixed << std::setprecision(3)
+              << duration.count() << " seconds.\n"
+              << std::flush;
 
     std::vector<unsigned char> png_pixels(width * height * 4);
 
@@ -347,7 +361,7 @@ int main() {
         png_pixels[4 * i + 3] = 255;
     }
 
-    std::string file_name = "smallpt_cpu_" + std::to_string(num_samples) + ".png";
+    std::string file_name = "smallpt_megakernel_" + std::to_string(num_samples) + ".png";
 
     // Encode the image
     // if there's an error, display it
