@@ -260,25 +260,11 @@ Vec3 trace(const Ray &camera_ray, const Sphere *spheres, const int num_spheres, 
     }
 
     return radiance;
-
-
-    double t;
-    int hit_sphere_id = intersect(camera_ray, t, spheres, num_spheres);
-    if (hit_sphere_id < 0) {
-        return Vec3(0, 0, 0);
-    }
-
-    const Sphere &obj = spheres[hit_sphere_id]; // the hit object
-    Vec3 hit_point = camera_ray.o + camera_ray.d * t;
-    Vec3 surface_normal = (hit_point - obj.position).norm(); // always face out
-
-
-
-    return surface_normal.norm().abs();
 }
 
-__global__ void
-render(Vec3 *frame_buffer, const int width, const int height, const Sphere *spheres, const int num_spheres) {
+__global__
+void render(Vec3 *frame_buffer, const int width, const int height, const int num_samples, const Sphere *spheres,
+            const int num_spheres) {
     const int worker_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (worker_idx >= width * height) {
         return;
@@ -293,7 +279,6 @@ render(Vec3 *frame_buffer, const int width, const int height, const Sphere *sphe
     Sampler sampler(worker_idx);
 
     auto pixel_val = Vec3(0.0, 0.0, 0.0);
-    int num_samples = 16;
     for (int s = 0; s < num_samples; s++) {
         double r1 = 2 * sampler.generate();
         double dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
@@ -316,10 +301,12 @@ int main() {
     const int width = 1024 * ratio;
     const int height = 768 * ratio;
 
+    const int num_samples = 64;
+
     Vec3 *frame_buffer;
     checkCudaErrors(cudaMallocManaged((void **) &frame_buffer, sizeof(Vec3) * width * height));
 
-    int num_spheres = 9;
+    const int num_spheres = 9;
     Sphere *spheres;
     checkCudaErrors(cudaMallocManaged((void **) &spheres, sizeof(Sphere) * num_spheres));
 
@@ -347,7 +334,7 @@ int main() {
     const int thread_size = 64;
     dim3 threads(thread_size);
     dim3 blocks(width * height / thread_size + 1);
-    render<<<blocks, threads>>>(frame_buffer, width, height, spheres, num_spheres);
+    render<<<blocks, threads>>>(frame_buffer, width, height, num_samples, spheres, num_spheres);
     checkCudaErrors(cudaDeviceSynchronize());
     checkCudaErrors(cudaGetLastError());
 
@@ -360,7 +347,8 @@ int main() {
         png_pixels[4 * i + 3] = 255;
     }
 
-    std::string file_name = "small_pt_megakernel.png";
+    std::string file_name = "smallpt_cpu_" + std::to_string(num_samples) + ".png";
+
     // Encode the image
     // if there's an error, display it
     if (unsigned error = lodepng::encode(file_name, png_pixels, width, height); error) {
