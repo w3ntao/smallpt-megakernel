@@ -1,4 +1,5 @@
 #include <iostream>
+#include <curand_kernel.h>
 
 #include "macro.h"
 #include "lodepng/lodepng.h"
@@ -24,6 +25,11 @@ struct Vec3 {
     }
 
     SMALLPT_CPU_GPU
+    Vec3 abs() const {
+        return Vec3(::abs(x), ::abs(y), ::abs(z));
+    }
+
+    SMALLPT_CPU_GPU
     Vec3 operator+(const Vec3 &b) const { return Vec3(x + b.x, y + b.y, z + b.z); }
 
     SMALLPT_CPU_GPU
@@ -31,6 +37,11 @@ struct Vec3 {
         x += b.x;
         y += b.y;
         z += b.z;
+    }
+
+    SMALLPT_CPU_GPU
+    Vec3 operator-() const {
+        return Vec3(-x, -y, -z);
     }
 
     SMALLPT_CPU_GPU
@@ -123,21 +134,85 @@ struct Sphere {
     }
 };
 
+struct Sampler {
+    SMALLPT_GPU Sampler(int seed) {
+        curand_init(seed, 0, 0, &rand_state);
+
+    }
+
+    SMALLPT_GPU double generate() { return curand_uniform(&rand_state); }
+
+private:
+    curandState rand_state;
+};
+
+SMALLPT_GPU
+inline int intersect(const Ray &r, double &t, const Sphere *spheres, int num_spheres) {
+    int id = -1;
+    t = std::numeric_limits<double>::infinity();
+
+    for (int i = 0; i < num_spheres; ++i) {
+        double d = spheres[i].intersect(r);
+        if (d > 0 && d < t) {
+            t = d;
+            id = i;
+        }
+    }
+
+    return id;
+}
+
+SMALLPT_GPU
+Vec3 trace(const Ray &camera_ray, const Sphere *spheres, const int num_spheres, Sampler &sampler) {
+    double t;
+    int hit_sphere_id = intersect(camera_ray, t, spheres, num_spheres);
+    if (hit_sphere_id < 0) {
+        return Vec3(0, 0, 0);
+    }
+
+    const Sphere &obj = spheres[hit_sphere_id]; // the hit object
+    Vec3 hit_point = camera_ray.o + camera_ray.d * t;
+    Vec3 surface_normal = (hit_point - obj.position).norm(); // always face out
+
+    return surface_normal.norm().abs();
+}
+
 __global__ void
 render(Vec3 *frame_buffer, const int width, const int height, const Sphere *spheres, const int num_spheres) {
     const int worker_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (worker_idx >= width * height) {
         return;
     }
-    int y = worker_idx / width;
-    int x = worker_idx % width;
+    const int y = height - worker_idx / width;
+    const int x = worker_idx % width;
 
-    frame_buffer[worker_idx] = Vec3(double(x) / width, double(y) / height, 0.2);
+    Ray cam(Vec3(50, 52, 295.6), Vec3(0, -0.042612, -1).norm()); // cam pos, dir
+    Vec3 cx = Vec3(width * 0.5135 / height, 0, 0);
+    Vec3 cy = cx.cross(cam.d).norm() * 0.5135;
+
+    Sampler sampler(worker_idx);
+
+    auto pixel_val = Vec3(0.0, 0.0, 0.0);
+    int samples = 1;
+    for (int s = 0; s < samples; s++) {
+        double r1 = 2 * sampler.generate();
+        double dx = r1 < 1 ? sqrt(r1) - 1 : 1 - sqrt(2 - r1);
+
+        double r2 = 2 * sampler.generate();
+        double dy = r2 < 1 ? sqrt(r2) - 1 : 1 - sqrt(2 - r2);
+
+        Vec3 d = cx * ((dx + x) / width - 0.5) + cy * ((dy + y - 20) / height - 0.5) + cam.d;
+
+        pixel_val += trace(Ray(cam.o + d * 140, d.norm()), spheres, num_spheres, sampler);
+    }
+
+    frame_buffer[worker_idx] = pixel_val;
 }
 
 int main() {
-    const int width = 1024;
-    const int height = 768;
+    const double ratio = 1.5;
+    const int width = 1024 * ratio;
+    const int height = 768 * ratio;
 
     Vec3 *frame_buffer;
     checkCudaErrors(cudaMallocManaged((void **) &frame_buffer, sizeof(Vec3) * width * height));
