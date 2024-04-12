@@ -135,7 +135,8 @@ namespace MegaKernel {
         Vec3 cx = Vec3(width * 0.5135 / height, 0, 0);
         Vec3 cy = cx.cross(cam.d).norm() * 0.5135;
 
-        Sampler sampler(flat_idx);
+        Sampler sampler;
+        sampler.init(flat_idx);
 
         auto pixel_val = Vec3(0.0, 0.0, 0.0);
         for (int s = 0; s < num_samples; s++) {

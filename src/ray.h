@@ -21,6 +21,11 @@ struct Vec3 {
     }
 
     SMALLPT_CPU_GPU
+    bool is_positive() const {
+        return x > 0 && y > 0 && z > 0;
+    }
+
+    SMALLPT_CPU_GPU
     Vec3 operator+(const Vec3 &b) const { return Vec3(x + b.x, y + b.y, z + b.z); }
 
     SMALLPT_CPU_GPU

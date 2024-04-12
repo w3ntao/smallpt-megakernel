@@ -50,12 +50,13 @@ int main() {
 
     auto start = std::chrono::system_clock::now();
 
+
     if (true) {
         WaveFront::render(frame_buffer, width, height, num_samples, spheres, num_samples);
     } else {
         MegaKernel::render(frame_buffer, width, height, num_samples, spheres, num_spheres);
-
     }
+
 
     const std::chrono::duration<double> duration{std::chrono::system_clock::now() - start};
     std::cout << "rendering (" << num_samples << " spp) took " << std::fixed << std::setprecision(3)

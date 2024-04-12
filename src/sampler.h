@@ -3,9 +3,8 @@
 #include "macro.h"
 
 struct Sampler {
-    SMALLPT_GPU Sampler(int seed) {
+    SMALLPT_GPU void init(uint seed) {
         curand_init(seed, 0, 0, &rand_state);
-
     }
 
     SMALLPT_GPU
