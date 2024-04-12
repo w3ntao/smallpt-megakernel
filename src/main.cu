@@ -9,6 +9,24 @@
 
 #include "lodepng/lodepng.h"
 
+void mage_kernel_rendering(Vec3 *frame_buffer, int width, int height, int num_samples, const Sphere* spheres, int num_spheres) {
+    auto start = std::chrono::system_clock::now();
+
+    const int thread_width = 8;
+    const int thread_height = 8;
+
+    dim3 threads(thread_width, thread_height);
+    dim3 blocks(width / thread_width + 1, height / thread_height + 1);
+
+    MegaKernel::render<<<blocks, threads>>>(frame_buffer, width, height, num_samples, spheres, num_spheres);
+    checkCudaErrors(cudaDeviceSynchronize());
+    checkCudaErrors(cudaGetLastError());
+
+    const std::chrono::duration<double> duration{std::chrono::system_clock::now() - start};
+    std::cout << "rendering (" << num_samples << " spp) took " << std::fixed << std::setprecision(3)
+              << duration.count() << " seconds. (block dimension: "
+              << threads.x << "x" << threads.y << "x" << threads.z << ")\n" << std::flush;
+}
 
 int main() {
     const double ratio = 1.0;
@@ -45,22 +63,7 @@ int main() {
     spheres[8].init(600, Vec3(50, 681.6 - .27, 81.6), Vec3(12, 12, 12), Vec3(0, 0, 0),
                     ReflectionType::diffuse); // Lite
 
-    auto start = std::chrono::system_clock::now();
-
-    const int thread_width = 8;
-    const int thread_height = 8;
-
-    dim3 threads(thread_width, thread_height);
-    dim3 blocks(width / thread_width + 1, height / thread_height + 1);
-
-    render<<<blocks, threads>>>(frame_buffer, width, height, num_samples, spheres, num_spheres);
-    checkCudaErrors(cudaDeviceSynchronize());
-    checkCudaErrors(cudaGetLastError());
-
-    const std::chrono::duration<double> duration{std::chrono::system_clock::now() - start};
-    std::cout << "rendering (" << num_samples << " spp) took " << std::fixed << std::setprecision(3)
-              << duration.count() << " seconds. (block dimension: "
-              << threads.x << "x" << threads.y << "x" << threads.z << ")\n" << std::flush;
+    mage_kernel_rendering(frame_buffer, width, height,num_samples, spheres, num_spheres);
 
     std::vector<unsigned char> png_pixels(width * height * 4);
 
