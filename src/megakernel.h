@@ -120,8 +120,8 @@ namespace MegaKernel {
     }
 
     __global__
-    void render(Vec3 *frame_buffer, const int width, const int height, const int num_samples, const Sphere *spheres,
-                const int num_spheres) {
+    void _render(Vec3 *frame_buffer, const int width, const int height, const int num_samples, const Sphere *spheres,
+                 const int num_spheres) {
         const int x = blockIdx.x * blockDim.x + threadIdx.x;
         const int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -153,5 +153,18 @@ namespace MegaKernel {
         pixel_val = pixel_val * (1.0 / double(num_samples));
 
         frame_buffer[flat_idx] = Vec3(clamp(pixel_val.x, 0, 1), clamp(pixel_val.y, 0, 1), clamp(pixel_val.z, 0, 1));
+    }
+
+
+    void render(Vec3 *frame_buffer, int width, int height, int num_samples, const Sphere *spheres, int num_spheres) {
+        const int thread_width = 8;
+        const int thread_height = 8;
+
+        dim3 threads(thread_width, thread_height);
+        dim3 blocks(width / thread_width + 1, height / thread_height + 1);
+
+        _render<<<blocks, threads>>>(frame_buffer, width, height, num_samples, spheres, num_spheres);
+        checkCudaErrors(cudaDeviceSynchronize());
+        checkCudaErrors(cudaGetLastError());
     }
 }
