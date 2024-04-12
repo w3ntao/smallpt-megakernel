@@ -13,7 +13,7 @@ endif ()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(PROJ_NAME "smallpt-megakernel")
+set(PROJ_NAME "smallpt-cuda")
 
 project(${PROJ_NAME} LANGUAGES CUDA CXX)
 
