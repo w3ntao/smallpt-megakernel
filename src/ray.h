@@ -26,7 +26,9 @@ struct Vec3 {
     }
 
     SMALLPT_CPU_GPU
-    Vec3 operator+(const Vec3 &b) const { return Vec3(x + b.x, y + b.y, z + b.z); }
+    Vec3 operator+(const Vec3 &b) const {
+        return Vec3(x + b.x, y + b.y, z + b.z);
+    }
 
     SMALLPT_CPU_GPU
     void operator+=(const Vec3 &b) {
@@ -41,10 +43,14 @@ struct Vec3 {
     }
 
     SMALLPT_CPU_GPU
-    Vec3 operator-(const Vec3 &b) const { return Vec3(x - b.x, y - b.y, z - b.z); }
+    Vec3 operator-(const Vec3 &b) const {
+        return Vec3(x - b.x, y - b.y, z - b.z);
+    }
 
     SMALLPT_CPU_GPU
-    Vec3 operator*(double b) const { return Vec3(x * b, y * b, z * b); }
+    Vec3 operator*(double b) const {
+        return Vec3(x * b, y * b, z * b);
+    }
 
     SMALLPT_CPU_GPU
     void operator*=(double b) {
@@ -54,7 +60,9 @@ struct Vec3 {
     }
 
     SMALLPT_CPU_GPU
-    Vec3 operator*(const Vec3 &b) const { return Vec3(x * b.x, y * b.y, z * b.z); }
+    Vec3 operator*(const Vec3 &b) const {
+        return Vec3(x * b.x, y * b.y, z * b.z);
+    }
 
     SMALLPT_CPU_GPU
     void operator*=(const Vec3 &b) {
@@ -64,10 +72,14 @@ struct Vec3 {
     }
 
     SMALLPT_CPU_GPU
-    Vec3 norm() const { return *this * (1 / sqrt(x * x + y * y + z * z)); }
+    Vec3 norm() const {
+        return *this * (1 / sqrt(x * x + y * y + z * z));
+    }
 
     SMALLPT_CPU_GPU
-    double dot(const Vec3 &b) const { return x * b.x + y * b.y + z * b.z; }
+    double dot(const Vec3 &b) const {
+        return x * b.x + y * b.y + z * b.z;
+    }
 
     SMALLPT_CPU_GPU
     Vec3 cross(const Vec3 &b) const {
@@ -75,7 +87,9 @@ struct Vec3 {
     }
 
     SMALLPT_CPU_GPU
-    double max_component_val() const { return x > y && x > z ? x : y > z ? y : z; }
+    double max_component_val() const {
+        return x > y && x > z ? x : y > z ? y : z;
+    }
 };
 
 struct Ray {

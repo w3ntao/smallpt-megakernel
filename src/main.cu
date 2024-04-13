@@ -10,7 +10,6 @@
 
 #include "lodepng/lodepng.h"
 
-
 int main() {
     const double ratio = 1.0;
     const int width = 1024 * ratio;
@@ -19,16 +18,16 @@ int main() {
     const int num_samples = 64;
 
     Vec3 *frame_buffer;
-    checkCudaErrors(cudaMallocManaged((void **) &frame_buffer, sizeof(Vec3) * width * height));
+    checkCudaErrors(cudaMallocManaged((void **)&frame_buffer, sizeof(Vec3) * width * height));
 
     const int num_spheres = 9;
     Sphere *spheres;
-    checkCudaErrors(cudaMallocManaged((void **) &spheres, sizeof(Sphere) * num_spheres));
+    checkCudaErrors(cudaMallocManaged((void **)&spheres, sizeof(Sphere) * num_spheres));
 
     spheres[0].init(1e5, Vec3(1e5 + 1, 40.8, 81.6), Vec3(0, 0, 0), Vec3(.75, .25, .25),
                     ReflectionType::diffuse); // Left
     spheres[1].init(1e5, Vec3(-1e5 + 99, 40.8, 81.6), Vec3(0, 0, 0), Vec3(.25, .25, .75),
-                    ReflectionType::diffuse);  // Right
+                    ReflectionType::diffuse); // Right
 
     spheres[2].init(1e5, Vec3(50, 40.8, 1e5), Vec3(0, 0, 0), Vec3(.75, .75, .75),
                     ReflectionType::diffuse); // Back
@@ -46,10 +45,7 @@ int main() {
     spheres[8].init(600, Vec3(50, 681.6 - .27, 81.6), Vec3(12, 12, 12), Vec3(0, 0, 0),
                     ReflectionType::diffuse); // Lite
 
-
-
     auto start = std::chrono::system_clock::now();
-
 
     if (true) {
         WaveFront::render(frame_buffer, width, height, num_samples, spheres, num_samples);
@@ -57,10 +53,10 @@ int main() {
         MegaKernel::render(frame_buffer, width, height, num_samples, spheres, num_spheres);
     }
 
-
     const std::chrono::duration<double> duration{std::chrono::system_clock::now() - start};
     std::cout << "rendering (" << num_samples << " spp) took " << std::fixed << std::setprecision(3)
-              << duration.count() << " seconds\n" << std::flush;
+              << duration.count() << " seconds\n"
+              << std::flush;
 
     std::vector<unsigned char> png_pixels(width * height * 4);
 

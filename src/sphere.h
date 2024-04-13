@@ -2,9 +2,7 @@
 
 #include "ray.h"
 
-enum class ReflectionType {
-    diffuse, specular, refractive
-}; // material types, used in radiance()
+enum class ReflectionType { diffuse, specular, refractive }; // material types, used in radiance()
 
 struct Sphere {
     double radius; // radius

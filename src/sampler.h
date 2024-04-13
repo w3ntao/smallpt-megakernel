@@ -8,8 +8,10 @@ struct Sampler {
     }
 
     SMALLPT_GPU
-    inline double generate() { return curand_uniform(&rand_state); }
+    inline double generate() {
+        return curand_uniform(&rand_state);
+    }
 
-private:
+  private:
     curandState rand_state;
 };
