@@ -47,10 +47,14 @@ int main() {
 
     auto start = std::chrono::system_clock::now();
 
+    std::string file_name;
+
     if (true) {
-        WaveFront::render(frame_buffer, width, height, num_samples, spheres, num_samples);
+        WaveFront::render(frame_buffer, width, height, num_samples, spheres, num_spheres);
+        file_name = "smallpt_wavefront_" + std::to_string(num_samples) + ".png";
     } else {
         MegaKernel::render(frame_buffer, width, height, num_samples, spheres, num_spheres);
+        file_name = "smallpt_megakernel_" + std::to_string(num_samples) + ".png";
     }
 
     const std::chrono::duration<double> duration{std::chrono::system_clock::now() - start};
@@ -66,8 +70,6 @@ int main() {
         png_pixels[4 * i + 2] = toInt(frame_buffer[i].z);
         png_pixels[4 * i + 3] = 255;
     }
-
-    std::string file_name = "smallpt_megakernel_" + std::to_string(num_samples) + ".png";
 
     // Encode the image
     // if there's an error, display it
